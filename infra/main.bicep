@@ -1,4 +1,4 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 @minLength(1)
 @maxLength(64)
@@ -35,21 +35,11 @@ param searchServiceIndexName string = 'azure-chat'
 param searchServiceSkuName string = 'standard'
 param searchServiceAPIVersion string = '2023-07-01-Preview'
 
-param resourceGroupName string = ''
-
-var resourceToken = toLower(uniqueString(subscription().id, name, location))
+var resourceToken = toLower(uniqueString(resourceGroup().id, name, location))
 var tags = { 'azd-env-name': name }
-
-// Organize resources in a resource group
-resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: !empty(resourceGroupName) ? resourceGroupName : 'rg-${name}'
-  location: location
-  tags: tags
-}
 
 module resources 'resources.bicep' = {
   name: 'all-resources'
-  scope: rg
   params: {
     name: name
     resourceToken: resourceToken

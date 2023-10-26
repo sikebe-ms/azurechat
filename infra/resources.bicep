@@ -39,8 +39,6 @@ var keyVaultName = toLower('${kv_prefix}-kv-${resourceToken}')
 var la_workspace_name = toLower('${name}-la-${resourceToken}')
 var diagnostic_setting_name = 'AppServiceConsoleLogs'
 
-var keyVaultSecretsUserRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-
 var databaseName = 'chat'
 var containerName = 'history'
 
@@ -197,16 +195,6 @@ resource webDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01
   }
 }
 
-resource kvFunctionAppPermissions 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(kv.id, webApp.name, keyVaultSecretsUserRole)
-  scope: kv
-  properties: {
-    principalId: webApp.identity.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: keyVaultSecretsUserRole
-  }
-}
-
 resource kv 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
   name: keyVaultName
   location: location
@@ -216,10 +204,28 @@ resource kv 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
       name: 'standard'
     }
     tenantId: subscription().tenantId
-    enableRbacAuthorization: true
+    enableRbacAuthorization: false
     enabledForDeployment: false
     enabledForDiskEncryption: true
     enabledForTemplateDeployment: false
+    accessPolicies: []
+  }
+
+  resource kvAccessPolicies 'accessPolicies@2022-07-01' = {
+    name: 'add'
+    properties: {
+      accessPolicies: [
+        {
+          objectId: webApp.identity.principalId
+          permissions: {
+            secrets: [
+              'get'
+            ]
+          }
+          tenantId: subscription().tenantId
+        }
+      ]
+    }
   }
 
   resource AZURE_COSMOSDB_KEY 'secrets' = {
